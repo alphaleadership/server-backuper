@@ -1,5 +1,4 @@
 'use strict';
-require('dotenv').config();
 const allowed_actions = ['INVITE_CREATE', 'BOT_ADD', 'MEMBER_ADD', 'EMOJI_CREATE', 'EMOJI_DELETE', 'EMOJI_UPDATE', 'MEMBER_MOVE'];
 const up = Date.now('CHANNEL_CREATE');
 var load = Date.now();
