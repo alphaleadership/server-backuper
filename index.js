@@ -81,9 +81,9 @@ setInterval(() => {
 
 client.on('ready', async () => {
   await client.user.setStatus('idle');
-  await client.user.setActivity(`Protecting ${client.guilds.cache.size} servers!`);
+  await client.user.setActivity(`Protecting ${client.guilds.cache.size} servers! | Running in IBM Cloud!`);
   setInterval(async () => {
-    await client.user.setActivity(`Protecting ${client.guilds.cache.size} servers!`);
+    await client.user.setActivity(`Protecting ${client.guilds.cache.size} servers! | Running in IBM Cloud!`);
   }, 60000);
   console.log(`Connected in ${Date.now() - up} milliseconds!`);
 });
