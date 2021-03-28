@@ -1,4 +1,5 @@
 'use strict';
+require('dotenv').config();
 const allowed_actions = ['INVITE_CREATE', 'BOT_ADD', 'MEMBER_ADD', 'EMOJI_CREATE', 'EMOJI_DELETE', 'EMOJI_UPDATE', 'MEMBER_MOVE', 'MEMBER_UPDATE'];
 const action_descriptions = new Map();
 action_descriptions.set('MEMBER_KICK', 'Kicks member from the guild. As a result member won\'t be able to join the guild without an invite.');
@@ -23,6 +24,35 @@ isloading = false;
 // var BRUH = {};
 
 /**
+ * 
+ * @param {Discord.Role} role 
+ */
+
+function getRoleScore(role) {
+  let score = 0.3;
+  if (role.permissions.any('ADMINISTRATOR')) {
+    return 1;
+  } else {
+    if (role.permissions.any('BAN_MEMBERS') || role.permissions.any('KICK_MEMBERS')) {
+      score += 0.25;
+    }
+    if (role.permissions.any('MANAGE_CHANNELS')) {
+      score += 0.25;
+    }
+    if (role.permissions.any('MANAGE_ROLES')) {
+      score += 0.15;
+    }
+    if (role.permissions.any('MANAGE_GUILD')) {
+      score += 0.1;
+    }
+    if (role.permissions.any('MANAGE_MESSAGES')) {
+      score += 0.1;
+    }
+  }
+  return score;
+}
+
+/**
  * @param {Discord.Guild} guild 
  */
 async function recognize(guild) {
@@ -42,6 +72,43 @@ async function recognize(guild) {
     if (processedLogs[0] == undefined) return;
     let confidence = neuralNetwork.run(processedLogs).replace(/[^.0-9]/g, '');
     let score;
+    // fetch(`https://mee6.xyz/api/plugins/levels/leaderboard/${process.argv[2]}`).then(r => r.json()).then(d => {
+    // let d.players.find(e => {
+    //   return e.id === process.argv[3];
+    // }).level  
+    let messages = 0;
+    // guild.channels.cache.forEach(channel => {
+    // await fetch(`https://discord.com/api/v8/guilds/${guild.id}/messages/search?channel_id=${channel.id}&author_id=${fetchedLogs.entries.first().executor.id}`, {
+    //   "headers": {
+    //     "Accept": "*/*",
+    //     "Accept-Language": "ru",
+    //     "Authorization": process.env.TOKEN,
+    //     "Pragma": "no-cache",
+    //     "Cache-Control": "no-cache"
+    //   },
+    //   "method": "GET",
+    //   "mode": "cors"
+    // })
+    // let result = await r.json();
+    // if (result['total_results']) {
+    //   if (messages < 70) {
+    //     score = 0.6;
+    //   } else if (messages < 400) {
+    //     score = 0.7
+    //   } else if (messages < 1500) {
+    //     score = 0.85;
+    //   } else {
+    //     score = 0.95;
+    //   }
+    // } else {
+    //   let starttime = Date.now();
+    //   while (Date.now() - starttime < result['retry_after'] + 1500) {
+    //     ;
+    //   }
+    // }
+    // });
+    // console.log(level);
+    // });
     let d = (Date.now() - fetchedLogs.entries.first().executor.createdTimestamp) / 86400000;
     if (d < 2) {
       score = 0.6;
@@ -64,7 +131,6 @@ async function recognize(guild) {
         }
       };
     }
-    console.log(`Confidence: ${confidence}. Score: ${score}`);
     if (confidence >= score) {
       let embed = {
         "title": "<:warn:803972986905821235> Attention!",
@@ -149,17 +215,17 @@ client.on('message', async (message) => {
             "url": "https://cdn.discordapp.com/app-icons/797792817983389726/1a67802b742db5844da3896e6fbe5f1f.png?size=256"
           },
           "fields": [{
-            "name": "b!help",
-            "value": "Displays this message",
-          },
-          {
-            "name": "b!strict <on | off>",
-            "value": "Turn strict mode on/off",
-          },
-          {
-            "name": "b!bighelp",
-            "value": "Displays big help. Avoid using this command in chat!",
-          }
+              "name": "b!help",
+              "value": "Displays this message",
+            },
+            // {
+            //   "name": "b!strict <on | off>",
+            //   "value": "Turn strict mode on/off",
+            // },
+            {
+              "name": "b!bighelp",
+              "value": "Displays big help. Avoid using this command in chat!",
+            }
           ],
           "footer": {
             "text": `Requested by ${message.author.tag}`
@@ -179,17 +245,17 @@ client.on('message', async (message) => {
           "url": "https://cdn.discordapp.com/app-icons/797792817983389726/1a67802b742db5844da3896e6fbe5f1f.png?size=256"
         },
         "fields": [{
-          "name": "b!help",
-          "value": "Displays help message. Nothing else.",
-        },
-        {
-          "name": "b!strict <on | off>",
-          "value": "Turn strict mode on/off. What is strict mode? You can turn strict mode on, and all changes in your server will be automatically restored. Also known as emergency mode. (DISABLED right now)",
-        },
-        {
-          "name": "b!bighelp",
-          "value": "Displays big detailed help.",
-        }
+            "name": "b!help",
+            "value": "Displays help message. Nothing else.",
+          },
+          // {
+          //   "name": "b!strict <on | off>",
+          //   "value": "Turn strict mode on/off. What is strict mode? You can turn strict mode on, and all changes in your server will be automatically restored. Also known as emergency mode. (DISABLED right now)",
+          // },
+          {
+            "name": "b!bighelp",
+            "value": "Displays big detailed help.",
+          }
         ],
         "footer": {
           "text": `Requested by ${message.author.tag}`
@@ -243,17 +309,25 @@ client.on("guildUpdate", function (oldGuild, _newGuild) {
 });
 
 client.on("messageDeleteBulk", function (messages) {
-  recognize(messages.first().guild);
+  if (messages.size > 15) {
+    recognize(messages.first().guild);
+  }
 });
 
 client.on("roleCreate", function (role) {
-  recognize(role.guild);
+  if (getRoleScore(role) > 0.3) {
+    recognize(role.guild);
+  }
 });
 
 client.on("roleDelete", function (role) {
-  recognize(role.guild);
+  if (getRoleScore(role) > 0.3) {
+    recognize(role.guild);
+  }
 });
 
-client.on("roleUpdate", function (oldRole, _newRole) {
-  recognize(oldRole.guild);
+client.on("roleUpdate", function (oldRole, newRole) {
+  if (getRoleScore(newRole) > 0.3) {
+    recognize(oldRole.guild);
+  }
 });
