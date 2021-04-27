@@ -1,4 +1,4 @@
-# Server Backuper
+# Server Backuper ✨
 
 ## ➲ What does it do?
 
