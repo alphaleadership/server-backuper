@@ -1,0 +1,73 @@
+{
+  "sizes": [
+    5,
+    3,
+    1
+  ],
+  "layers": [
+    {
+      "actionScore": {},
+      "victimConfidence": {},
+      "level": {},
+      "victimReputation": {},
+      "reputation": {}
+    },
+    {
+      "0": {
+        "bias": 2.3324429988861084,
+        "weights": {
+          "actionScore": 5.442527770996094,
+          "victimConfidence": -0.05254282429814339,
+          "level": -0.27797961235046387,
+          "victimReputation": -0.34789690375328064,
+          "reputation": 0.3566518723964691
+        }
+      },
+      "1": {
+        "bias": 0.4876309931278229,
+        "weights": {
+          "actionScore": 0.34749966859817505,
+          "victimConfidence": 0.0027146239299327135,
+          "level": 0.07248795032501221,
+          "victimReputation": 0.5897623300552368,
+          "reputation": -1.2094709873199463
+        }
+      },
+      "2": {
+        "bias": 4.33329439163208,
+        "weights": {
+          "actionScore": -5.207001209259033,
+          "victimConfidence": 0.07897540926933289,
+          "level": 0.4099433124065399,
+          "victimReputation": -0.074593685567379,
+          "reputation": -0.19966240227222443
+        }
+      }
+    },
+    {
+      "confidence": {
+        "bias": -1.1499485969543457,
+        "weights": {
+          "0": 2.403177261352539,
+          "1": 2.6253304481506348,
+          "2": -2.341663360595703
+        }
+      }
+    }
+  ],
+  "outputLookup": true,
+  "inputLookup": true,
+  "activation": "sigmoid",
+  "trainOpts": {
+    "iterations": 10000000,
+    "errorThresh": 0.0005,
+    "log": true,
+    "logPeriod": 10,
+    "learningRate": 0.3,
+    "momentum": 0.1,
+    "callbackPeriod": 10,
+    "beta1": 0.9,
+    "beta2": 0.999,
+    "epsilon": 1e-8
+  }
+}

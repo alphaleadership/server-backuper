@@ -1,31 +1,73 @@
 'use strict';
 require('dotenv').config();
-const allowed_actions = ['INVITE_CREATE', 'BOT_ADD', 'MEMBER_ADD', 'EMOJI_CREATE', 'EMOJI_DELETE', 'EMOJI_UPDATE', 'MEMBER_MOVE', 'MEMBER_UPDATE'];
-const action_descriptions = new Map();
-action_descriptions.set('MEMBER_KICK', 'Kicks member from the guild. As a result member won\'t be able to join the guild without an invite.');
-action_descriptions.set('MEMBER_BAN', 'Bans member from the guild. As a result member won\'t be able to join the guild before they get unbanned and invited.');
-action_descriptions.set('MEMBER_PRUNE', 'Kicks member from the guild. As a result member won\'t be able to join the guild without an invite.');
+const fs = require('fs');
+const fsp = fs.promises;
+if (!fs.existsSync('db')) {
+  fs.mkdirSync('db');
+} else if (!fs.statSync('db').isDirectory()) {
+  throw new Error('`db` exists and is not a directory. Aborting.');
+} else {
+  fs.closeSync(fs.openSync('db/reputation.sqlite'));
+}
+if (!fs.existsSync('data')) {
+  throw new Error('`data` does not exist.');
+} else if (!fs.statSync('db').isDirectory()) {
+  throw new Error('`data` is not a directory.');
+}
+const sqlite3 = require('sqlite3').verbose();
+const db = new sqlite3.Database('db/reputation.sqlite');
+const brain = require('brain.js');
+const Discord = require('discord.js');
+const config = require('./configuration.json');
+const reputationManager = require('./reputation.js');
+const actionsScores = require('./data/actionsScores.json');
+const allowed_actions = ['INVITE_CREATE', 'BOT_ADD', 'MEMBER_ADD', 'EMOJI_CREATE', 'EMOJI_DELETE', 'EMOJI_UPDATE', 'MEMBER_MOVE', 'MEMBER_UPDATE', 'MEMBER_DISCONNECT'];
+// const action_descriptions = new Map();
+// action_descriptions.set('MEMBER_KICK', 'Kicks member from the guild. As a result member won\'t be able to join the guild without an invite.');
+// action_descriptions.set('MEMBER_BAN', 'Bans member from the guild. As a result member won\'t be able to join the guild before they get unbanned and invited.');
+// action_descriptions.set('MEMBER_PRUNE', 'Kicks member from the guild. As a result member won\'t be able to join the guild without an invite.');
 const up = Date.now();
 // const fetch = require('node-fetch');
 var load = Date.now();
-const Discord = require('discord.js');
-const client = new Discord.Client();
-const fs = require('fs');
-const fsp = require('fs').promises;
-const brain = require('brain.js');
+const client = new Discord.Client({
+  messageEditHistoryMaxSize: 5,
+  messageCacheLifetime: 36000,
+  messageSweepInterval: 1800,
+  disableMentions: 'everyone'
+});
+client.commands = new Discord.Collection();
+const neuralNetwork = new brain.NeuralNetwork();
+neuralNetwork.fromJSON(require('./data/net.json'));
 console.log(`Loaded dependencies in ${Date.now() - load} millliseconds!`);
-const neuralNetwork = new brain.recurrent.LSTM();
-load = Date.now();
-neuralNetwork.fromJSON(JSON.parse(fs.readFileSync('./neuralNetwork.json')));
-console.log(`Loaded neural network in ${Date.now() - load} millliseconds!`);
-var isloading;
-isloading = true;
-isloading = false;
+
 // var BRUH = {};
 
 /**
  * 
- * @param {Discord.Role} role 
+ * @param {Discord.Guild} guild 
+ */
+
+const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+for (const file of commandFiles) {
+  const command = require(`./commands/` + file);
+  client.commands.set(command.name, command);
+}
+
+const cooldowns = new Discord.Collection();
+
+/**
+ * 
+ * @param {String} action 
+ */
+
+function getActionScore(action) {
+  return actionsScores[action] || 0.4;
+}
+
+
+/**
+ * 
+ * @param {Discord.Role} role
  */
 
 function getRoleScore(role) {
@@ -56,70 +98,23 @@ function getRoleScore(role) {
  * @param {Discord.Guild} guild 
  */
 async function recognize(guild) {
+  // backup(guild);
   if (guild) {
     let fetchedLogs = await guild.fetchAuditLogs({
-      limit: 100,
+      limit: 1,
     });
     let action = fetchedLogs.entries.first();
-    if ((fetchedLogs.entries.first().executor.id === client.user.id) || fetchedLogs.entries.first().executor.id === guild.ownerID) return;
+    if (action.executor.id === client.user.id || action.executor.id === guild.ownerID) return;
     if (allowed_actions.includes(fetchedLogs.entries.first().action)) return;
-    let processedLogs = new Array();
-    fetchedLogs.entries.forEach((entry) => {
-      if ((entry.executor.id === fetchedLogs.entries.first().executor.id) && Date.now() - entry.createdTimestamp < 600000) {
-        processedLogs.push(entry.action);
-      }
-    });
-    if (processedLogs[0] == undefined) return;
-    let confidence = neuralNetwork.run(processedLogs).replace(/[^.0-9]/g, '');
-    let score;
-    // fetch(`https://mee6.xyz/api/plugins/levels/leaderboard/${process.argv[2]}`).then(r => r.json()).then(d => {
-    // let d.players.find(e => {
-    //   return e.id === process.argv[3];
-    // }).level  
-    let messages = 0;
-    // guild.channels.cache.forEach(channel => {
-    // await fetch(`https://discord.com/api/v8/guilds/${guild.id}/messages/search?channel_id=${channel.id}&author_id=${fetchedLogs.entries.first().executor.id}`, {
-    //   "headers": {
-    //     "Accept": "*/*",
-    //     "Accept-Language": "ru",
-    //     "Authorization": process.env.TOKEN,
-    //     "Pragma": "no-cache",
-    //     "Cache-Control": "no-cache"
-    //   },
-    //   "method": "GET",
-    //   "mode": "cors"
-    // })
-    // let result = await r.json();
-    // if (result['total_results']) {
-    //   if (messages < 70) {
-    //     score = 0.6;
-    //   } else if (messages < 400) {
-    //     score = 0.7
-    //   } else if (messages < 1500) {
-    //     score = 0.85;
-    //   } else {
-    //     score = 0.95;
-    //   }
-    // } else {
-    //   let starttime = Date.now();
-    //   while (Date.now() - starttime < result['retry_after'] + 1500) {
-    //     ;
-    //   }
-    // }
-    // });
-    // console.log(level);
-    // });
-    let d = (Date.now() - fetchedLogs.entries.first().executor.createdTimestamp) / 86400000;
-    if (d < 2) {
-      score = 0.6;
-    } else if (d < 7) {
-      score = 0.63;
-    } else if (d < 20) {
-      score = 0.66;
-    } else {
-      score = 0.69;
+    let runData = {};
+    if (action.targetType === 'USER') {
+      runData.victimReputation = await reputationManager.getReputation(action.target.id, db);
     }
+    runData.victimReputation = await reputationManager.getReputation(action.executor.id, db);
+    runData.actionScore = getActionScore(action.action);
+    let confidence = neuralNetwork.run(runData).confidence;
     confidence = (confidence > 1) ? 0.65 : confidence;
+    let score = 0.8;
     switch (action.targetType) {
       case 'CHANNEL': {
         if (Date.now() - action.target.createdTimestamp < 60000) {
@@ -129,147 +124,143 @@ async function recognize(guild) {
         } else if (Date.now() - action.target.createdTimestamp < 600000) {
           confidence = 0.3;
         }
-      };
+      }
     }
+    console.log(confidence, score, await reputationManager.getReputation(action.executor.id, db), await reputationManager.getReputation(action.target.id, db));
     if (confidence >= score) {
       let embed = {
         "title": "<:warn:803972986905821235> Attention!",
-        "description": `Detected destructive activity in **${guild.name}**! Type of activity is \`${processedLogs[0]}\`. The action was done by **${fetchedLogs.entries.first().executor.tag}**.`,
+        "description": `Detected destructive activity in **${guild.name}**! Type of activity is **${action.action}**. The action was done by **${fetchedLogs.entries.first().executor.tag}**.`,
         "color": 14895693,
         "thumbnail": {
-          "url": "https://cdn.discordapp.com/app-icons/797792817983389726/1a67802b742db5844da3896e6fbe5f1f.png?size=256"
+          "url": "https://cdn.discordapp.com/avatars/797792817983389726/c37f92aa872ea449ff88450818cac325.png?size=256"
         },
         "timestamp": Date.now()
       };
       (await client.users.fetch(guild.ownerID)).send({
         embed
       });
+      let totalRaids = parseInt(await fsp.readFile('accidents.txt'));
+      await fsp.writeFile('accidents.txt', String(totalRaids + 1));
+      await reputationManager.adjustReputation(action.executor.id, confidence, score, db);
     }
-    if (confidence - score > 0.25 && confidence - score <= 0.3) {
-      (await guild.members.fetch({
-        user: fetchedLogs.entries.first().executor
-      })).kick({
-        reason: 'Anti-raid'
-      });
-    }
-    if (confidence - score > 0.3) {
-      (await guild.members.fetch({
-        user: fetchedLogs.entries.first().executor
-      })).ban({
-        days: 1,
-        reason: 'Anti-raid'
-      });
-    }
+    // if (confidence - score > 0.25 && confidence - score <= 0.3) {
+    //   (await guild.members.fetch({
+    //     user: fetchedLogs.entries.first().executor
+    //   })).kick({
+    //     reason: 'Anti-raid'
+    //   });
+    // }
+    // if (confidence - score > 0.3) {
+    //   (await guild.members.fetch({
+    //     user: fetchedLogs.entries.first().executor
+    //   })).ban({
+    //     days: 1,
+    //     reason: 'Anti-raid'
+    //   });
+    // }
   }
 }
 
-// client.guilds.cache.forEach(async (guildForBackup) => {
-async function backup() {
-  //   backuper.create(guildForBackup, {
-  //     maxMessagesPerChannel: 500,
-  //     jsonSave: true,
-  //     jsonBeautify: false,
-  //     saveImages: 'base64'
-  //   }).then(async (data) => {
-  //     let dataread = await fsp.readFile('/home/all/Mail.ru/Server Backuper/index.json');
-  //     let datajson = JSON.parse(dataread);
-  //     let arr = JSON.parse(dataread)[guildForBackup.id] || [];
-  //     arr.push({
-  //       id: (await backuper.list())[0],
-  //       timestamp: Date.now()
-  //     });
-  //     datajson[guildForBackup.id] = arr;
-  //     await fsp.writeFile('/home/all/Mail.ru/Server Backuper/index.json', JSON.stringify(datajson, null, 2));
-  //   });
-  // });
-  // console.log(`Backuped ${client.guilds.cache.size} servers at ${new Date().toUTCString()}!`);
-}
-
-setInterval(() => {
-  console.log(`Uptime is ${client.uptime} ms`);
-}, 120000);
-
 client.on('ready', async () => {
+  let userCount = 0;
+  client.guilds.cache.forEach(g => {
+    userCount += g.memberCount;
+  });
   await client.user.setStatus('idle');
-  await client.user.setActivity(`Protecting ${client.guilds.cache.size} servers!`);
+  await client.user.setActivity(`Protecting ${client.guilds.cache.size} servers and ${userCount} members!`);
   setInterval(async () => {
-    await client.user.setActivity(`Protecting ${client.guilds.cache.size} servers!`);
+    let userCount = 0;
+    client.guilds.cache.forEach(g => {
+      userCount += g.memberCount;
+    });
+    await client.user.setStatus('idle');
+    await client.user.setActivity(`Protecting ${client.guilds.cache.size} servers and ${userCount} members!`);
   }, 60000);
-  setInterval(backup, 600000);
-  setImmediate(backup);
   console.log(`Connected in ${Date.now() - up} milliseconds!`);
 });
 
-client.on('message', async (message) => {
-  if (!message.author.bot) {
-    if (isloading) {
-      message.react('❎');
-      message.reply('Backuper hasn\'t fully loaded yet, try again in a few minutes.');
-    } else {
-      if (message.content === 'b!help') {
-        let embed = {
-          "title": "My commands",
-          "description": "I always try to protect your server from harmful activity, meaning you don't have to run any commands for it. For now my commands are:",
-          "color": 14895693,
-          "thumbnail": {
-            "url": "https://cdn.discordapp.com/app-icons/797792817983389726/1a67802b742db5844da3896e6fbe5f1f.png?size=256"
-          },
-          "fields": [{
-              "name": "b!help",
-              "value": "Displays this message",
-            },
-            // {
-            //   "name": "b!strict <on | off>",
-            //   "value": "Turn strict mode on/off",
-            // },
-            {
-              "name": "b!bighelp",
-              "value": "Displays big help. Avoid using this command in chat!",
-            }
-          ],
-          "footer": {
-            "text": `Requested by ${message.author.tag}`
-          }
-        };
-        message.channel.send({
-          embed
-        });
+
+client.on('message', message => {
+  if (message.content.startsWith(`<@${client.user.id}>`) || message.content.startsWith(`<@!${client.user.id}>`)) {
+    let embed = {
+      "title": "My prefix",
+      "description": "My prefix is **b!**",
+      "color": 14895693,
+      "thumbnail": {
+        "url": "https://cdn.discordapp.com/avatars/797792817983389726/c37f92aa872ea449ff88450818cac325.png?size=256"
+      },
+      "footer": {
+        "text": `Requested by ${message.author.tag}`
       }
+    };
+    return message.channel.send({
+      embed
+    });
+  }
+  if (!message.content.startsWith(config.prefix) || message.author.bot) return;
+
+  const args = message.content.slice(config.prefix.length).split(/ +/);
+  const commandName = args.shift().toLowerCase();
+
+  const command = client.commands.get(commandName) || client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(commandName));
+
+  // If command exist
+  if (!command) return;
+
+  // Check if command can be executed in DM
+  if (command.guildOnly && message.channel.type !== 'text') {
+    return message.reply('I can\'t execute that command inside DMs!');
+  }
+
+  // Check if args are required
+  if (command.args && !args.length) {
+    let reply = `Please provide arguments, ${message.author}!`;
+
+    if (command.usage) {
+      reply += `\nThe proper usage would be: \`${config.prefix}${command.name} ${command.usage}\``;
     }
-    if (message.content === 'b!bighelp') {
-      let embed = {
-        "title": "My commands",
-        "description": "I always try to protect your server from harmful activity, meaning you don't have to run any commands for it. For now my commands are:",
-        "color": 14895693,
-        "thumbnail": {
-          "url": "https://cdn.discordapp.com/app-icons/797792817983389726/1a67802b742db5844da3896e6fbe5f1f.png?size=256"
-        },
-        "fields": [{
-            "name": "b!help",
-            "value": "Displays help message. Nothing else.",
-          },
-          // {
-          //   "name": "b!strict <on | off>",
-          //   "value": "Turn strict mode on/off. What is strict mode? You can turn strict mode on, and all changes in your server will be automatically restored. Also known as emergency mode. (DISABLED right now)",
-          // },
-          {
-            "name": "b!bighelp",
-            "value": "Displays big detailed help.",
-          }
-        ],
-        "footer": {
-          "text": `Requested by ${message.author.tag}`
-        }
-      };
-      message.channel.send({
-        embed
-      });
+
+    return message.channel.send(reply);
+  }
+
+  // Check if user is in cooldown
+  if (!cooldowns.has(command.name)) {
+    cooldowns.set(command.name, new Discord.Collection());
+  }
+
+  const now = Date.now();
+  const timestamps = cooldowns.get(command.name);
+  const cooldownAmount = (command.cooldown || 3) * 1000;
+
+  if (timestamps.has(message.author.id)) {
+    const expirationTime = timestamps.get(message.author.id) + cooldownAmount;
+
+    if (now < expirationTime) {
+      // If user is in cooldown
+      const timeLeft = (expirationTime - now) / 1000;
+      return message.reply(`Please wait ${timeLeft.toFixed(1)} more second(s) before reusing the \`${command.name}\` command.`);
+    }
+  } else {
+    timestamps.set(message.author.id, now);
+    setTimeout(() => {
+      timestamps.delete(message.author.id)
+    }, cooldownAmount);
+    // Execute command
+    try {
+      command.execute(message, args);
+    } catch (error) {
+      console.error(error);
+      message.reply('There was an error while trying to execute that command!');
     }
   }
 });
 
-client.login(process.env.TOKEN);
-
+db.serialize(() => {
+  db.run('CREATE TABLE IF NOT EXISTS reputation (user INT, reputation INT)', () => {
+    client.login(process.env.TOKEN);
+  });
+});
 // Don't mind
 
 client.on("channelCreate", function (channel) {
@@ -284,14 +275,17 @@ client.on("channelDelete", function (channel) {
 //   recognize(channel.guild);
 // });
 
+// eslint-disable-next-line no-unused-vars
 client.on("channelUpdate", function (oldChannel, _newChannel) {
   recognize(oldChannel.guild);
 });
 
+// eslint-disable-next-line no-unused-vars
 client.on("guildBanAdd", function (guild, _user) {
   recognize(guild);
 });
 
+// eslint-disable-next-line no-unused-vars
 client.on("guildBanRemove", function (guild, _user) {
   recognize(guild);
 });
@@ -300,10 +294,11 @@ client.on("guildMemberRemove", function (member) {
   recognize(member.guild);
 });
 
-client.on("guildMemberUpdate", function (oldMember, _newMember) {
-  recognize(oldMember.guild);
-});
+// client.on("guildMemberUpdate", function (oldMember, _newMember) {
+//   recognize(oldMember.guild);
+// });
 
+// eslint-disable-next-line no-unused-vars
 client.on("guildUpdate", function (oldGuild, _newGuild) {
   recognize(oldGuild);
 });
