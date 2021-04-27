@@ -1,14 +1,14 @@
 {
   "name": "server-backuper",
-  "version": "1.0.1",
-  "description": "So... Hello",
+  "version": "3.1.0",
+  "description": "A Discord bot to protect your server from raids.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"We don't have a test yet\"",
-    "start": "bash"
+    "test": "echo \"We don't have a test yet\" && exit 1",
+    "start": "node ."
   },
   "keywords": [
-    "backup",
+    "protection",
     "discord"
   ],
   "author": "Lynx",
