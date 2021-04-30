@@ -2,8 +2,8 @@
   {
     "input": {
       "actionScore": 0.7,
-      "victimConfidence": 0.9,
-      "level": 20
+      "victimReputation": -10,
+      "reputation": 30
     },
     "output": {
       "confidence": 0.6
