@@ -1,7 +1,7 @@
 module.exports = {
   name: 'keygen',
   aliases: ['key', 'generate-keys', 'kg', 'k'],
-  description: 'Displays help message.',
+  description: 'Generates RSA keys.',
   category: 'security',
   guildOnly: true,
   cooldown: 2,
