@@ -1,1 +1,4 @@
-{}
+{
+  "cmd.help.title": "My commands",
+  "cmd.help.description": "For now my commands are:"
+}
