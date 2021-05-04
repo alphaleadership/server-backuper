@@ -1,4 +1,7 @@
 {
   "cmd.help.title": "",
+  "cmd.help.commands.help": "",
+  "cmd.help.commands.bighelp": "",
+  "cmd.help.commands.exploits": "",
   "cmd.help.description": ""
 }
