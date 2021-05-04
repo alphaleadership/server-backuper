@@ -9,7 +9,7 @@ module.exports = {
     message.channel.startTyping();
     const NodeRSA = require('node-rsa');
     const key = new NodeRSA({
-      b: 1024
+      b: 2048
     });
     let privateKey = key.exportKey('pkcs8-private');
     let publicKey = key.exportKey('pkcs8-public');
