@@ -1,5 +1,6 @@
 {
   "cmd.help.title": "Мої команди",
+  "requestedBy": "",
   "cmd.help.commands.help": "",
   "cmd.help.commands.bighelp": "",
   "cmd.help.commands.exploits": "",
