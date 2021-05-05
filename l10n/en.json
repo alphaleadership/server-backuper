@@ -1,5 +1,6 @@
 {
   "cmd.help.title": "My commands",
+  "requestedBy": "Requested by {tag}",
   "cmd.help.commands.help": "Displays this message",
   "cmd.help.commands.bighelp": "Displays big help. Avoid using this command in chat!",
   "cmd.help.commands.exploits": "Checks your server for bots with unpatched bugs, which can allow people to raid your server!",
