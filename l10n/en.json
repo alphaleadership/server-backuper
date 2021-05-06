@@ -1,5 +1,6 @@
 {
   "cmd.help.title": "My commands",
+  "cmd.bighelp.description": "For now my commands are:",
   "cmd.bighelp.title": "My commands",
   "cmd.bighelp.commands.help": "Displays help message. Nothing else.",
   "cmd.bighelp.commands.bighelp": "Displays big detailed help. Avoid using this command in chat as it can be spammy!",
