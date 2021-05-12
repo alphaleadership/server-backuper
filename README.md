@@ -1,4 +1,6 @@
 # Server Backuper ✨
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fserver-backuper%2Fserver-backuper.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fserver-backuper%2Fserver-backuper?ref=badge_shield)
+
 
 ## ➲ What does it do?
 
@@ -19,3 +21,7 @@ Open an issue or join our [Discord server](https://discord.com/invite/xzpcXYz6yK
 ## ➲ I don't have resources to run it myself!
 
 Invite [this](https://discord.com/oauth2/authorize?client_id=797792817983389726&permissions=19584&scope=bot) bot, which is run by me!
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fserver-backuper%2Fserver-backuper.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fserver-backuper%2Fserver-backuper?ref=badge_large)
