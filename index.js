@@ -29,6 +29,7 @@ const allowed_actions = ['INVITE_CREATE', 'BOT_ADD', 'MEMBER_ADD', 'EMOJI_CREATE
 const up = Date.now();
 // const fetch = require('node-fetch');
 var load = Date.now();
+const argv = require('minimist')(process.argv);
 const client = new Discord.Client({
   messageEditHistoryMaxSize: 5,
   messageCacheLifetime: 36000,
@@ -44,12 +45,16 @@ console.log(`Loaded dependencies in ${Date.now() - load} millliseconds!`);
 
 /**
  * 
- * @param {Discord.Guild} guild 
+ * @param {Discord.Guild} guild
  */
 
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+// const disabledCommands = String(argv['disable-commands'] || '').split(', ').join().split(',');
+
 for (const file of commandFiles) {
+  // if (argv.commands === false) break; // Debug
   const command = require(`./commands/` + file);
+  // if (disabledCommands.includes(command.name)) continue; // Debug
   client.commands.set(command.name, command);
 }
 
@@ -99,6 +104,7 @@ function getRoleScore(role) {
  */
 async function recognize(guild) {
   // backup(guild);
+  if (!argv.protection) return 0;
   if (guild) {
     let fetchedLogs = await guild.fetchAuditLogs({
       limit: 1,
@@ -108,13 +114,13 @@ async function recognize(guild) {
     if (allowed_actions.includes(fetchedLogs.entries.first().action)) return;
     let runData = {};
     if (action.targetType === 'USER') {
-      runData.victimReputation = await reputationManager.getReputation(action.target.id, db);
+      runData.victimReputation = await reputationManager.getReputation(action.target.id, guild.id, db);
     }
-    runData.victimReputation = await reputationManager.getReputation(action.executor.id, db);
+    runData.victimReputation = await reputationManager.getReputation(action.executor.id, guild.id, db);
     runData.actionScore = getActionScore(action.action);
     let confidence = neuralNetwork.run(runData).confidence;
     confidence = (confidence > 1) ? 0.65 : confidence;
-    let score = 0.8;
+    let score = 0.93;
     switch (action.targetType) {
       case 'CHANNEL': {
         if (Date.now() - action.target.createdTimestamp < 60000) {
@@ -126,23 +132,23 @@ async function recognize(guild) {
         }
       }
     }
-    console.log(confidence, score, await reputationManager.getReputation(action.executor.id, db), await reputationManager.getReputation(action.target.id, db));
+    console.log(confidence, score, await reputationManager.getReputation(action.executor.id, guild.id, db), await reputationManager.getReputation(action.target.id, guild.id, db));
     if (confidence >= score) {
       let embed = {
         "title": "<:warn:803972986905821235> Attention!",
-        "description": `Detected destructive activity in **${guild.name}**! Type of activity is **${action.action}**. The action was done by **${fetchedLogs.entries.first().executor.tag}**.`,
+        "description": `Detected destructive activity in **${guild.name}**! Type of activity is **${action.action}**. The action was done by **${action.executor.tag}**.`,
         "color": 14895693,
         "thumbnail": {
           "url": "https://cdn.discordapp.com/avatars/797792817983389726/c37f92aa872ea449ff88450818cac325.png?size=256"
         },
         "timestamp": Date.now()
       };
-      (await client.users.fetch(guild.ownerID)).send({
+      (guild.channels.cache.find(c => c.name === 'sb-alerts' && c.isText()) || await client.users.fetch(guild.ownerID)).send({
         embed
       });
       let totalRaids = parseInt(await fsp.readFile('accidents.txt'));
       await fsp.writeFile('accidents.txt', String(totalRaids + 1));
-      await reputationManager.adjustReputation(action.executor.id, confidence, score, db);
+      await reputationManager.adjustReputation(action.executor.id, guild.id, confidence, score, db);
     }
     // if (confidence - score > 0.25 && confidence - score <= 0.3) {
     //   (await guild.members.fetch({
@@ -231,7 +237,7 @@ client.on('message', message => {
 
   const now = Date.now();
   const timestamps = cooldowns.get(command.name);
-  const cooldownAmount = (command.cooldown || 3) * 1000;
+  const cooldownAmount = (command.cooldown || 0) * 1000;
 
   if (timestamps.has(message.author.id)) {
     const expirationTime = timestamps.get(message.author.id) + cooldownAmount;

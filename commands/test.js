@@ -1,14 +1,12 @@
 module.exports = {
-  name: 'help',
-  aliases: ['h'],
-  description: 'Displays help message.',
-  category: 'help',
-  guildOnly: false,
+  name: 'e27troh2qtioh2wutio23y9783',
+  guildOnly: true,
+  cooldown: 0,
   async execute(message) {
     const {
       l
     } = require('../localize.js');
-    var embed = l({
+    let embed = l({
       "title": 'cmd.help.title',
       "description": 'cmd.help.description',
       "color": 14895693,
@@ -31,7 +29,7 @@ module.exports = {
       "footer": {
         "text": 'requestedBy'
       }
-    }, 'ru', {
+    }, 'ru-UA', {
       tag: message.author.tag
     });
     message.channel.send({
