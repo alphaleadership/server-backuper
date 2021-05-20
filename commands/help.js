@@ -31,7 +31,7 @@ module.exports = {
       "footer": {
         "text": 'requestedBy'
       }
-    }, 'ru', {
+    }, 'en', {
       tag: message.author.tag
     });
     message.channel.send({
