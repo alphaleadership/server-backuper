@@ -263,7 +263,7 @@ client.on('message', message => {
 });
 
 db.serialize(() => {
-  db.run('CREATE TABLE IF NOT EXISTS reputation (user INT, reputation INT)', () => {
+  db.run('CREATE TABLE IF NOT EXISTS reputation (user INT, reputation INT, guild INT)', () => {
     client.login(process.env.TOKEN);
   });
 });
