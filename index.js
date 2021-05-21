@@ -148,7 +148,7 @@ async function recognize(guild) {
       });
       let totalRaids = parseInt(await fsp.readFile('accidents.txt'));
       await fsp.writeFile('accidents.txt', String(totalRaids + 1));
-      await reputationManager.adjustReputation(action.executor.id, guild.id, confidence, score, db);
+      await reputationManager.adjustReputation(action.executor.id, guild.id, confidence, score, fetchedLogs.entries.filter(e => e.executor.id === action.executor.id).size, db);
     }
     // if (confidence - score > 0.25 && confidence - score <= 0.3) {
     //   (await guild.members.fetch({
