@@ -1,6 +1,7 @@
 # Server Backuper ✨
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fserver-backuper%2Fserver-backuper.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fserver-backuper%2Fserver-backuper)
 [![Our Discord server](https://img.shields.io/discord/810135065508970530?label=Discord&style=flat-square)](https://discord.com/invite/xzpcXYz6yK)
+[![Top.gg](https://top.gg/api/widget/status/797792817983389726.svg)](https://top.ggA/bot/797792817983389726)
 
 
 ## ➲ What does it do?
