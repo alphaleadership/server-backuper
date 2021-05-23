@@ -37,7 +37,7 @@ function get(user, guild, db) {
 
 async function adjust(user, guild, confidence, score, actionCount, db) {
   let reputation = await get(user, guild, db);
-  reputation -= (confidence - score) * actionCount / 25;
+  reputation -= (confidence - score) * Math.max(0.5, actionCount / 25);
   await set(user, guild, reputation, db);
 }
 
