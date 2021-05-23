@@ -116,7 +116,7 @@ async function recognize(guild) {
     if (action.targetType === 'USER') {
       runData.victimReputation = await reputationManager.getReputation(action.target.id, guild.id, db);
     }
-    runData.victimReputation = await reputationManager.getReputation(action.executor.id, guild.id, db);
+    runData.reputation = await reputationManager.getReputation(action.executor.id, guild.id, db);
     runData.actionScore = getActionScore(action.action);
     let confidence = neuralNetwork.run(runData).confidence;
     confidence = (confidence > 1) ? 0.65 : confidence;
