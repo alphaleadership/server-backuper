@@ -30,7 +30,7 @@ function get(user, guild, db) {
   return new Promise((resolve, reject) => {
     db.get('SELECT * FROM reputation WHERE user = ? AND guild = ? LIMIT 1', [user, guild], (err, row) => {
       if (err) return reject(err);
-      resolve(row.reputation);
+      resolve(row ? row.reputation : 0);
     });
   });
 }
