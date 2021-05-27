@@ -15,11 +15,8 @@ function set(user, guild, reputation, db) {
         db.run('INSERT INTO reputation VALUES (?, ?, ?)', [
           reputation, user, guild
         ], (err) => {
-          if (err) {
-            return reject(err);
-          } else {
-            resolve(reputation);
-          }
+          if (err) return reject(err);
+          resolve(reputation);
         });
       }
     });
@@ -37,8 +34,8 @@ function get(user, guild, db) {
 
 async function adjust(user, guild, confidence, score, actionCount, db) {
   let reputation = await get(user, guild, db);
-  reputation -= (confidence - score) * Math.max(0.5, actionCount / 25);
-  await set(user, guild, reputation, db);
+  reputation -= (confidence - score) * Math.max(0.8, actionCount / 25) || 1;
+  return await set(user, guild, reputation, db);
 }
 
 module.exports = {
