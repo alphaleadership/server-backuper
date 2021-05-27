@@ -27,6 +27,8 @@
   },
   "homepage": "https://github.com/server-backuper/server-backuper#readme",
   "dependencies": {
-    "brain.js": "^1.6.1"
+    "brain.js": "^1.6.1",
+    "dotenv": "^10.0.0",
+    "sqlite3": "^5.0.2"
   }
 }
