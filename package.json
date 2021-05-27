@@ -25,5 +25,8 @@
   "bugs": {
     "url": "https://github.com/server-backuper/server-backuper/issues"
   },
-  "homepage": "https://github.com/server-backuper/server-backuper#readme"
+  "homepage": "https://github.com/server-backuper/server-backuper#readme",
+  "dependencies": {
+    "brain.js": "^1.6.1"
+  }
 }
