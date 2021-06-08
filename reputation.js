@@ -1,5 +1,7 @@
 'use strict';
 
+const mem = require('mem');
+
 function set(user, guild, reputation, db) {
   return new Promise((resolve, reject) => {
     db.get('SELECT * FROM reputation WHERE user = ? AND guild = ? LIMIT 1', [user, guild], (err, row) => {
@@ -42,7 +44,16 @@ async function adjust(user, guild, confidence, score, actionCount, db) {
 }
 
 module.exports = {
-  setReputation: set,
-  getReputation: get,
-  adjustReputation: adjust
+  setReputation: mem(set, {
+    cacheKey: arguments_ => arguments_.slice(0, 3).join(','),
+    maxAge: 10000
+  }),
+  getReputation: mem(get, {
+    cacheKey: arguments_ => arguments_.slice(0, 2).join(','),
+    maxAge: 10000
+  }),
+  adjustReputation: mem(adjust, {
+    cacheKey: arguments_ => arguments_.slice(0, 5).join(','),
+    maxAge: 10000
+  }),
 };
