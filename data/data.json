@@ -157,14 +157,5 @@
     "output": {
       "confidence": 0.65
     }
-  },
-  {
-    "input": {
-      "actionScore": 0.3,
-      "reputation": 6
-    },
-    "output": {
-      "confidence": 0.3
-    }
   }
 ]
