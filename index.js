@@ -62,4 +62,3 @@ Object.keys(plugins).forEach(plugin => {
     script(process.env[pluginName]);
   });
 });
-// End plugin operations
