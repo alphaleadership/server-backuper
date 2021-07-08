@@ -21,7 +21,9 @@ const Discord = require("discord.js");
 const config = require("./configuration.json");
 const reputationManager = require("./reputation.js");
 const actionsScores = require("./data/actionsScores.json");
-const allowed_actions = [
+const level = require("level");
+const whitelist = level("db/whitelist");
+const allowedActions = [
   "INVITE_CREATE",
   "BOT_ADD",
   "MEMBER_ADD",
@@ -129,7 +131,13 @@ async function recognize(guild) {
       action.executor.id === guild.ownerID
     )
       return;
-    if (allowed_actions.includes(fetchedLogs.entries.first().action)) return;
+    if (allowedActions.includes(fetchedLogs.entries.first().action)) return;
+    try {
+      await whitelist.get(`${guild.id}.${action.executor.id}`);
+      return;
+    } catch {
+      // Nothing
+    }
     let runData = {};
     if (action.targetType === "USER") {
       runData.victimReputation = await reputationManager.getReputation(
@@ -323,7 +331,7 @@ client.on("message", (message) => {
     }, cooldownAmount);
     // Execute command
     try {
-      command.execute(message, args);
+      command.execute.bind({ whitelist })(message, args);
     } catch (error) {
       console.error(error);
       message.reply("There was an error while trying to execute that command!");
