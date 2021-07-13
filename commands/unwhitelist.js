@@ -10,7 +10,10 @@ module.exports = {
     const { whitelist } = this;
     const user = message.mentions.users.first();
     if (!user) {
-      message.reply("Provide a user!");
+      return message.reply("Provide a user!");
+    }
+    if (message.guild.ownerID !== message.author.id) {
+      return message.reply("You muset be the owner of this server to whitelist users!");
     }
     whitelist.del(`${message.guild.id}.${user.id}`, "");
     responses.done(message);
