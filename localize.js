@@ -1,5 +1,5 @@
 'use strict';
-module.exports.l = (object, locale, translateTitles, variables) => {
+module.exports.l = (object, locale, variables) => {
   if (typeof object !== 'object' || object === null) return {};
   const localizedStrings = require(`./l10n/${locale}.json`);
   const fallbackLocaleStrings = require(`./l10n/${locale.split('-')[0]}.json`);
