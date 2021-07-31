@@ -331,7 +331,7 @@ client.on("message", (message) => {
     }, cooldownAmount);
     // Execute command
     try {
-      command.execute.bind({ whitelist })(message, args);
+      command.execute.bind({ whitelist, client })(message, args);
     } catch (error) {
       console.error(error);
       message.reply("There was an error while trying to execute that command!");
