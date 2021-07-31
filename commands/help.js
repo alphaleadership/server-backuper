@@ -13,12 +13,14 @@ module.exports = {
       thumbnail: {
         url: `https://cdn.discordapp.com/avatars/${this.client.user.id}/${this.client.user.avatar}.png?size=256`,
       },
-      fields: this.client.commands.filter(c => !c.hidden).map((command) => { 
-        return {
-          name: command.name,
-          value: command.description,
-        }
-      }),
+      fields: this.client.commands
+        .filter((c) => !c.hidden)
+        .map((command) => {
+          return {
+            name: command.name,
+            value: command.description,
+          };
+        }),
       footer: {
         text: `Requested by ${message.author.tag}`,
       },
