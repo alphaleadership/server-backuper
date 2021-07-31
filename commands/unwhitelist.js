@@ -13,7 +13,9 @@ module.exports = {
       return message.reply("Provide a user!");
     }
     if (message.guild.ownerID !== message.author.id) {
-      return message.reply("You muset be the owner of this server to whitelist users!");
+      return message.reply(
+        "You muset be the owner of this server to whitelist users!"
+      );
     }
     whitelist.del(`${message.guild.id}.${user.id}`, "");
     responses.done(message);
