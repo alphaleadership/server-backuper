@@ -19,5 +19,5 @@ jobs:
       uses: actions/setup-node@v2
       with:
         node-version: ${{ matrix.node-version }}
-    - run: npm i -D eslint@7 eslint-config-airbnb-base@14 eslint-plugin-import@2
+    - run: npm i -D eslint@7 eslint-config-airbnb-base@14 eslint-config-prettier@8 eslint-plugin-import@2
     - run: npx eslint --fix .
