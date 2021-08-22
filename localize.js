@@ -44,11 +44,9 @@ function parseString(string, variables) {
   for (const character of string) {
     if (character === '{' && !isReadingVar) {
       isReadingVar = true;
-      continue;
     } else if (character === '}' && isReadingVar) {
       isReadingVar = false;
       newText += variables[varName];
-      continue;
     } else if (isReadingVar) {
       varName += character;
     } else {
