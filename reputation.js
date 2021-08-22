@@ -1,5 +1,3 @@
-"use strict";
-
 const mem = require("mem");
 
 function set(user, guild, reputation, db) {
@@ -8,13 +6,19 @@ function set(user, guild, reputation, db) {
       "SELECT * FROM reputation WHERE user = ? AND guild = ? LIMIT 1",
       [user, guild],
       (err, row) => {
-        if (err) return reject(err);
+        if (err) {
+          reject(err);
+          return;
+        }
         if (row) {
           db.run(
             "UPDATE reputation SET reputation = ? WHERE user = ? AND guild = ?",
             [reputation, user, guild],
-            (err) => {
-              if (err) return reject(err);
+            (error) => {
+              if (error) {
+                reject(error);
+                return;
+              }
               resolve(reputation);
             }
           );
@@ -22,12 +26,12 @@ function set(user, guild, reputation, db) {
           db.run(
             "INSERT INTO reputation VALUES (?, ?, ?)",
             [reputation, user, guild],
-            (err) => {
+            (error) => {
               if (err) {
-                return reject(err);
-              } else {
-                resolve(reputation);
+                reject(error);
+                return;
               }
+              resolve(reputation);
             }
           );
         }

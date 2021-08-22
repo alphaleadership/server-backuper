@@ -1,6 +1,16 @@
-"use strict";
-require("dotenv").config();
+/* eslint-disable consistent-return */
+// Constants
+
+const SCORE = 0.965;
+
+// End constants
+
+// require("dotenv").config();
+
+const threadIt = require("discord-threads");
+
 const fs = require("fs");
+
 const fsp = fs.promises;
 if (!fs.existsSync("db")) {
   fs.mkdirSync("db");
@@ -15,14 +25,20 @@ if (!fs.existsSync("data")) {
   throw new Error("`data` is not a directory.");
 }
 const sqlite3 = require("sqlite3").verbose();
+
 const db = new sqlite3.Database("db/reputation.sqlite");
 const brain = require("brain.js");
 const Discord = require("discord.js");
+const level = require("level-party");
+const argv = require("minimist")(process.argv);
 const config = require("./configuration.json");
-const reputationManager = require("./reputation.js");
+const reputationManager = require("./reputation");
 const actionsScores = require("./data/actionsScores.json");
-const level = require("level");
-const whitelist = level("db/whitelist");
+
+const whitelist = level("db/whitelist/");
+const languageDB = level("db/language/");
+const punishmentsDB = level("db/punishments/");
+
 const allowedActions = [
   "INVITE_CREATE",
   "BOT_ADD",
@@ -40,17 +56,22 @@ const allowedActions = [
 // action_descriptions.set('MEMBER_PRUNE', 'Kicks member from the guild. As a result member won\'t be able to join the guild without an invite.');
 const up = Date.now();
 // const fetch = require('node-fetch');
-var load = Date.now();
-const argv = require("minimist")(process.argv);
+const load = Date.now();
+
 const client = new Discord.Client({
-  messageEditHistoryMaxSize: 5,
-  messageCacheLifetime: 36000,
-  messageSweepInterval: 1800,
+  messageEditHistoryMaxSize: 10,
   disableMentions: "everyone",
+  intents: [
+    Discord.Intents.FLAGS.GUILDS,
+    Discord.Intents.FLAGS.GUILD_MESSAGES,
+    Discord.Intents.FLAGS.DIRECT_MESSAGES,
+  ],
 });
+threadIt(client);
 client.commands = new Discord.Collection();
 const neuralNetwork = new brain.NeuralNetwork();
 neuralNetwork.fromJSON(require("./data/net.json"));
+
 console.log(`Loaded dependencies in ${Date.now() - load} millliseconds!`);
 
 // var BRUH = {};
@@ -65,9 +86,10 @@ const commandFiles = fs
   .filter((file) => file.endsWith(".js"));
 // const disabledCommands = String(argv['disable-commands'] || '').split(', ').join().split(',');
 
+// eslint-disable-next-line no-restricted-syntax
 for (const file of commandFiles) {
-  // if (argv.commands === false) break; // Debug
-  const command = require(`./commands/` + file);
+  // eslint-disable-next-line global-require, import/no-dynamic-require
+  const command = require(`./commands/${file}`);
   // if (disabledCommands.includes(command.name)) continue; // Debug
   client.commands.set(command.name, command);
 }
@@ -92,26 +114,26 @@ function getRoleScore(role) {
   let score = 0.3;
   if (role.permissions.any("ADMINISTRATOR")) {
     return 1;
-  } else {
-    if (
-      role.permissions.any("BAN_MEMBERS") ||
-      role.permissions.any("KICK_MEMBERS")
-    ) {
-      score += 0.25;
-    }
-    if (role.permissions.any("MANAGE_CHANNELS")) {
-      score += 0.25;
-    }
-    if (role.permissions.any("MANAGE_ROLES")) {
-      score += 0.15;
-    }
-    if (role.permissions.any("MANAGE_GUILD")) {
-      score += 0.1;
-    }
-    if (role.permissions.any("MANAGE_MESSAGES")) {
-      score += 0.1;
-    }
   }
+  if (
+    role.permissions.any("BAN_MEMBERS") ||
+    role.permissions.any("KICK_MEMBERS")
+  ) {
+    score += 0.25;
+  }
+  if (role.permissions.any("MANAGE_CHANNELS")) {
+    score += 0.25;
+  }
+  if (role.permissions.any("MANAGE_ROLES")) {
+    score += 0.15;
+  }
+  if (role.permissions.any("MANAGE_GUILD")) {
+    score += 0.1;
+  }
+  if (role.permissions.any("MANAGE_MESSAGES")) {
+    score += 0.1;
+  }
+
   return score;
 }
 
@@ -120,15 +142,15 @@ function getRoleScore(role) {
  */
 async function recognize(guild) {
   // backup(guild);
-  if (!argv.protection && argv.protection !== undefined) return 0;
+  if (argv.protection === false) return 0;
   if (guild) {
-    let fetchedLogs = await guild.fetchAuditLogs({
+    const fetchedLogs = await guild.fetchAuditLogs({
       limit: 100,
     });
-    let action = fetchedLogs.entries.first();
+    const action = fetchedLogs.entries.first();
     if (
       action.executor.id === client.user.id ||
-      action.executor.id === guild.ownerID
+      action.executor.id === guild.ownerId
     )
       return;
     if (allowedActions.includes(fetchedLogs.entries.first().action)) return;
@@ -138,7 +160,14 @@ async function recognize(guild) {
     } catch {
       // Nothing
     }
-    let runData = {};
+    const serverOwner = await guild.fetchOwner();
+    let punishment;
+    try {
+      punishment = await punishmentsDB.get(guild.id);
+    } catch {
+      punishment = "none";
+    }
+    const runData = {};
     if (action.targetType === "USER") {
       runData.victimReputation = await reputationManager.getReputation(
         action.target.id,
@@ -152,9 +181,8 @@ async function recognize(guild) {
       db
     );
     runData.actionScore = getActionScore(action.action);
-    let confidence = neuralNetwork.run(runData).confidence;
+    let confidence = null;
     confidence = confidence > 1 ? 0.65 : confidence;
-    let score = 0.93;
     switch (action.targetType) {
       case "CHANNEL": {
         if (Date.now() - action.target.createdTimestamp < 60000) {
@@ -163,64 +191,97 @@ async function recognize(guild) {
           confidence = 0.2;
         } else if (Date.now() - action.target.createdTimestamp < 600000) {
           confidence = 0.3;
+        } else {
+          confidence = neuralNetwork.run(runData).confidence;
         }
+        break;
+      }
+      default: {
+        confidence = neuralNetwork.run(runData).confidence;
+        confidence = confidence > 1 ? 0.65 : confidence;
+        break;
       }
     }
-    const actionCount = fetchedLogs.entries.filter((e) => {
-      return (
+    const actionCount = fetchedLogs.entries.filter(
+      (e) =>
         e.executor.id === action.executor.id &&
         Date.now() - e.createdTimestamp <= 1000 * 60 * 7
-      );
-    }).size;
-    console.log(actionCount);
+    ).size;
+    console.log("Action count:", actionCount);
     let toMultiplyConfidence = Math.max(actionCount / 7, 1);
+    // eslint-disable-next-line no-restricted-globals
     toMultiplyConfidence = isFinite(toMultiplyConfidence)
       ? toMultiplyConfidence
       : 1;
-    confidence = confidence * toMultiplyConfidence;
+    confidence *= toMultiplyConfidence;
     console.log(
       confidence,
-      score,
+      SCORE,
       await reputationManager.getReputation(action.executor.id, guild.id, db),
       await reputationManager.getReputation(action.target.id, guild.id, db)
     );
-    if (confidence >= score) {
-      let embed = {
-        title: "<:warn:803972986905821235> Attention!",
-        description: `Detected destructive activity in **${guild.name}**! Type of activity is **${action.action}**. The action was done by **${action.executor.tag}**.`,
+    if (confidence >= SCORE) {
+      if (confidence - SCORE > 0.25) {
+        switch (punishment) {
+          case "ban": {
+            const member = await guild.members.fetch({
+              user: fetchedLogs.entries.first().executor,
+            });
+            await member.ban({
+              reason: "Anti-raid",
+            });
+            break;
+          }
+
+          case "kick": {
+            const member = await guild.members.fetch({
+              user: fetchedLogs.entries.first().executor,
+            });
+            await member.kick("Anti-raid");
+            break;
+          }
+
+          default: {
+            // No punishment
+          }
+        }
+      }
+      const embed = {
+        title: "<:warning:869253051339403294> Attention!",
+        description: `:boom: Detected destructive activity in **${guild.name}**! Type of activity is **${action.action}**. The action was done by **${action.executor.tag}**.`,
         color: 14895693,
         thumbnail: {
           url: "https://cdn.discordapp.com/avatars/797792817983389726/c37f92aa872ea449ff88450818cac325.png?size=256",
         },
         timestamp: Date.now(),
       };
-      (
+      const toSend =
         guild.channels.cache.find(
           (c) => c.name === "sb-alerts" && c.isText()
-        ) || (await client.users.fetch(guild.ownerID))
-      ).send({
-        embed,
+        ) || serverOwner;
+      toSend.send({
+        embeds: [embed],
       });
-      let totalRaids = parseInt(await fsp.readFile("accidents.txt"));
+      const totalRaids = parseInt(await fsp.readFile("accidents.txt"), 10);
       await fsp.writeFile("accidents.txt", String(totalRaids + 1));
       await reputationManager.adjustReputation(
         action.executor.id,
         guild.id,
         confidence,
-        score,
+        SCORE,
         fetchedLogs.entries.filter((e) => e.executor.id === action.executor.id)
           .size,
         db
       );
     }
-    // if (confidence - score > 0.25 && confidence - score <= 0.3) {
+    // if (confidence - SCORE > 0.25 && confidence - score <= 0.3) {
     //   (await guild.members.fetch({
     //     user: fetchedLogs.entries.first().executor
     //   })).kick({
     //     reason: 'Anti-raid'
     //   });
     // }
-    // if (confidence - score > 0.3) {
+    // if (confidence - SCORE > 0.3) {
     //   (await guild.members.fetch({
     //     user: fetchedLogs.entries.first().executor
     //   })).ban({
@@ -238,27 +299,27 @@ client.on("ready", async () => {
   });
   await client.user.setStatus("idle");
   await client.user.setActivity(
-    `Protecting ${client.guilds.cache.size} servers and ${userCount} members!`
+    `Protecting ${client.guilds.cache.size} servers and ${userCount} members! 😎`
   );
   setInterval(async () => {
-    let userCount = 0;
+    let userCount2 = 0;
     client.guilds.cache.forEach((g) => {
-      userCount += g.memberCount;
+      userCount2 += g.memberCount;
     });
     await client.user.setStatus("idle");
     await client.user.setActivity(
-      `Protecting ${client.guilds.cache.size} servers and ${userCount} members!`
+      `Protecting ${client.guilds.cache.size} servers and ${userCount2} members! 😎`
     );
   }, 60000);
   console.log(`Connected in ${Date.now() - up} milliseconds!`);
 });
 
-client.on("message", (message) => {
+client.on("messageCreate", async (message) => {
   if (
     message.content.startsWith(`<@${client.user.id}>`) ||
     message.content.startsWith(`<@!${client.user.id}>`)
   ) {
-    let embed = {
+    const embed = {
       title: "My prefix",
       description: "My prefix is **b!**",
       color: 14895693,
@@ -270,7 +331,7 @@ client.on("message", (message) => {
       },
     };
     return message.channel.send({
-      embed,
+      embeds: [embed],
     });
   }
   if (!message.content.startsWith(config.prefix) || message.author.bot) return;
@@ -288,7 +349,7 @@ client.on("message", (message) => {
   if (!command) return;
 
   // Check if command can be executed in DM
-  if (command.guildOnly && message.channel.type !== "text") {
+  if (command.guildOnly && !message.guild) {
     return message.reply("I can't execute that command inside DMs!");
   }
 
@@ -300,7 +361,7 @@ client.on("message", (message) => {
       reply += `\nThe proper usage would be: \`${config.prefix}${command.name} ${command.usage}\``;
     }
 
-    return message.channel.send(reply);
+    return message.channel.send({ content: reply });
   }
 
   // Check if user is in cooldown
@@ -330,11 +391,33 @@ client.on("message", (message) => {
       timestamps.delete(message.author.id);
     }, cooldownAmount);
     // Execute command
+    let language;
     try {
-      command.execute.bind({ whitelist, client })(message, args);
+      language = await languageDB.get(message.guild.id);
+    } catch {
+      language = "en";
+    }
+
+    try {
+      process.nextTick(async () => {
+        command.execute.bind({
+          whitelist,
+          client,
+          languageDB,
+          // eslint-disable-next-line block-scoped-var
+          language: language || "en",
+          punishments: punishmentsDB,
+        })(message, args);
+      });
     } catch (error) {
       console.error(error);
-      message.reply("There was an error while trying to execute that command!");
+      message.reply(
+        "There was an error while trying to execute that command! " +
+          `Please report it to ${
+            client.application?.owner.owner.user.tag ||
+            client.application?.owner.tag
+          }!`
+      );
     }
   }
 });
@@ -347,14 +430,15 @@ db.serialize(() => {
     }
   );
 });
+
 // Don't mind
 
-client.on("channelCreate", function (channel) {
-  recognize(channel.guild);
+client.on("channelCreate", (channel) => {
+  recognize(channel.guild).catch(() => {});
 });
 
-client.on("channelDelete", function (channel) {
-  recognize(channel.guild);
+client.on("channelDelete", (channel) => {
+  recognize(channel.guild).catch(() => {});
 });
 
 // client.on("channelPinsUpdate", function (channel, _time) {
@@ -362,53 +446,52 @@ client.on("channelDelete", function (channel) {
 // });
 
 // eslint-disable-next-line no-unused-vars
-client.on("channelUpdate", function (oldChannel, _newChannel) {
-  recognize(oldChannel.guild);
+client.on("channelUpdate", (oldChannel, _newChannel) => {
+  recognize(oldChannel.guild).catch(() => {});
 });
 
 // eslint-disable-next-line no-unused-vars
-client.on("guildBanAdd", function (guild, _user) {
-  recognize(guild);
+client.on("guildBanAdd", (guild, _user) => {
+  recognize(guild).catch(() => {});
 });
 
 // eslint-disable-next-line no-unused-vars
-client.on("guildBanRemove", function (guild, _user) {
-  recognize(guild);
+client.on("guildBanRemove", (guild, _user) => {
+  recognize(guild).catch(() => {});
 });
 
-client.on("guildMemberRemove", function (member) {
-  recognize(member.guild);
+client.on("guildMemberRemove", (member) => {
+  recognize(member.guild).catch(() => {});
 });
 
 // client.on("guildMemberUpdate", function (oldMember, _newMember) {
 //   recognize(oldMember.guild);
 // });
 
-// eslint-disable-next-line no-unused-vars
-client.on("guildUpdate", function (oldGuild, _newGuild) {
-  recognize(oldGuild);
+client.on("guildUpdate", (oldGuild) => {
+  recognize(oldGuild).catch(() => {});
 });
 
-client.on("messageDeleteBulk", function (messages) {
+client.on("messageDeleteBulk", (messages) => {
   if (messages.size > 15) {
-    recognize(messages.first().guild);
+    recognize(messages.first().guild).catch(() => {});
   }
 });
 
-client.on("roleCreate", function (role) {
+client.on("roleCreate", (role) => {
   if (getRoleScore(role) > 0.3) {
-    recognize(role.guild);
+    recognize(role.guild).catch(() => {});
   }
 });
 
-client.on("roleDelete", function (role) {
+client.on("roleDelete", (role) => {
   if (getRoleScore(role) > 0.3) {
-    recognize(role.guild);
+    recognize(role.guild).catch(() => {});
   }
 });
 
-client.on("roleUpdate", function (oldRole, newRole) {
+client.on("roleUpdate", (oldRole, newRole) => {
   if (getRoleScore(newRole) > 0.3) {
-    recognize(oldRole.guild);
+    recognize(oldRole.guild).catch(() => {});
   }
 });

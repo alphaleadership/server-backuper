@@ -19,12 +19,12 @@ module.exports = {
     "discordbotlistcom",
     "discordboats",
   ],
-  description: "Sends invite link and links you should definitely look at.",
+  description: "cmd.invite.description",
   category: "information",
   guildOnly: false,
   async execute(message) {
     // const { l } = require("../localize.js");
-    var embed = {
+    const embed = {
       title: "Links",
       // description: "Here are all",
       color: 14895693,
@@ -34,8 +34,7 @@ module.exports = {
       fields: [
         {
           name: "Invite link",
-          value:
-            "Invite the bot [here](https://discord.com/oauth2/authorize?client_id=797792817983389726&permissions=19584&scope=bot)!",
+          value: "Invite the bot [here](https://server-backuper.cloud/invite)!",
         },
         {
           name: "Website",
@@ -45,17 +44,17 @@ module.exports = {
         {
           name: "Top.gg",
           value:
-            "You can vote for the bot on [Top.gg](https://server-backuper.cloud)!",
+            "You can vote for the bot on [Top.gg](https://top.gg/bot/797792817983389726/vote)!",
         },
         {
           name: "DiscordBotList.com",
           value:
-            "You can vote for the bot on [DiscordBotList.com](https://discordbotlist.com/bots/server-backuper)!",
+            "You can vote for the bot on [DiscordBotList.com](https://discordbotlist.com/bots/server-backuper/upvote)!",
         },
         {
           name: "Discord Boats",
           value:
-            "You can vote for the bot on [Discord Boats](https://discord.boats/bot/797792817983389726)!",
+            "You can vote for the bot on [Discord Boats](https://discord.boats/bot/797792817983389726/vote)!",
         },
       ],
       footer: {
@@ -63,7 +62,7 @@ module.exports = {
       },
     };
     message.channel.send({
-      embed,
+      embeds: [embed],
     });
   },
 };

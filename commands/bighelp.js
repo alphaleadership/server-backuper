@@ -1,44 +1,33 @@
+const { l } = require("../localize");
+
 module.exports = {
   name: "bighelp",
   aliases: ["bh"],
-  description: "Displays help message.",
+  description: "cmd.help.commands.bighelp",
+  bigDescription: "cmd.bighelp.commands.bighelp",
   category: "help",
   guildOnly: false,
   async execute(message) {
-    const { l } = require("../localize.js");
-    var embed = l(
-      {
-        title: "cmd.bighelp.title",
-        description: "cmd.bighelp.description",
-        color: 14895693,
-        thumbnail: {
-          url: "https://cdn.discordapp.com/avatars/797792817983389726/c37f92aa872ea449ff88450818cac325.png?size=256",
-        },
-        fields: [
-          {
-            name: "b!help",
-            value: "cmd.bighelp.commands.help",
-          },
-          {
-            name: "b!bighelp",
-            value: "cmd.bighelp.commands.bighelp",
-          },
-          {
-            name: "b!exploits",
-            value: "cmd.bighelp.commands.exploits",
-          },
-        ],
-        footer: {
-          text: "requestedBy",
-        },
+    const lg = this.language;
+    const embed = {
+      title: l("cmd.help.title", lg),
+      description: l("cmd.help.description", lg),
+      color: 14895693,
+      thumbnail: {
+        url: `https://cdn.discordapp.com/avatars/${this.client.user.id}/${this.client.user.avatar}.png?size=256`,
       },
-      "en",
-      {
-        tag: message.author.tag,
-      }
-    );
+      fields: this.client.commands
+        .filter((c) => !c.hidden)
+        .map((command) => ({
+          name: l(command.name, lg),
+          value: l(command.bigDescription || command.description, lg),
+        })),
+      footer: {
+        text: l("requestedBy", lg, { tag: message.author.tag }),
+      },
+    };
     message.channel.send({
-      embed,
+      embeds: [embed],
     });
   },
 };

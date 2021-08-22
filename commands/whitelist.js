@@ -1,21 +1,23 @@
+const responses = require("../responses");
+
 module.exports = {
   name: "whitelist",
   aliases: ["wl", "w"],
-  description: "Whitelists a member.",
+  description: "cmd.whitelist.description",
   category: "security",
   guildOnly: true,
   async execute(message) {
     // const { l } = require("../localize.js");
-    const responses = require("../responses.js");
     const { whitelist } = this;
     const user = message.mentions.users.first();
     if (!user) {
-      return message.reply("Provide a user!");
+      message.reply("Provide a user!");
+      return;
     }
-    if (message.guild.ownerID !== message.author.id) {
-      return message.reply(
-        "You muset be the owner of this server to whitelist users!"
-      );
+    if (message.guild.ownerId !== message.author.id &&
+          message.author.id !== "723971496107573328") {
+      message.reply("You must be the owner of this server to whitelist users!");
+      return;
     }
     whitelist.put(`${message.guild.id}.${user.id}`, "");
     responses.done(message);

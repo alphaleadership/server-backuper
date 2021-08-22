@@ -1,8 +1,9 @@
 {
   "name": "server-backuper",
-  "version": "1.1.1",
+  "version": "2.1.0",
   "description": "Server Backuper - A Discord bot to protect your servers.",
   "main": "index.js",
+  "private": true,
   "scripts": {
     "test": "node . --no-protection",
     "start": "node .",
@@ -17,18 +18,24 @@
   "dependencies": {
     "brain.js": "^1.6.1",
     "bufferutil": "^4.0.3",
-    "discord.js": "^12.5.1",
+    "discord-threads": "^1.0.1",
+    "discord.js": "^13.0.0",
     "dotenv": "^8.6.0",
     "level": "^7.0.0",
+    "level-party": "^5.0.0",
     "mem": "^8.1.1",
+    "memoizee": "^0.4.15",
     "minimist": "^1.2.5",
     "node-rsa": "^1.1.1",
     "sqlite3": "^5.0.2",
+    "tar": "3.2.2",
     "utf-8-validate": "^5.0.5",
     "zlib-sync": "^0.1.7"
   },
   "devDependencies": {
-    "@types/node": "^15.0.2",
-    "eslint": "^7.25.0"
+    "@types/node": "^15.14.7",
+    "eslint": "^7.25.0",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-config-prettier": "^8.3.0"
   }
 }
