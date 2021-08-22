@@ -1,3 +1,5 @@
+/* eslint consistent-return: "warn" */
+
 const mem = require("mem");
 
 function set(user, guild, reputation, db) {
