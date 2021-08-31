@@ -1,3 +1,8 @@
+# Important announcement
+Hello. Unfortunately, Server Backuper will not be actively developed for a while. It's because school starts tomorrow, and I just won't have time. Thanks for understanding.
+
+<br>
+
 # Server Backuper ✨
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fserver-backuper%2Fserver-backuper.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fserver-backuper%2Fserver-backuper)
