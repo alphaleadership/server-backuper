@@ -20,4 +20,4 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
     - run: npm i -D eslint@7 eslint-config-airbnb-base@14 eslint-config-prettier@8 eslint-plugin-import@2
-    - run: npx eslint --fix .
+    - run: npx eslint --rule "import/no-unresolved: 0" --fix .
