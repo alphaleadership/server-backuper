@@ -25,9 +25,9 @@
     "level-party": "^5.0.0",
     "mem": "^8.1.1",
     "memoizee": "^0.4.15",
-    "minimist": "^1.2.5",
+    "minimist": "^1.2.6",
     "node-rsa": "^1.1.1",
-    "sqlite3": "^5.0.2",
+    "sqlite3": "^5.1.5",
     "utf-8-validate": "^5.0.5",
     "zlib-sync": "^0.1.7"
   },
